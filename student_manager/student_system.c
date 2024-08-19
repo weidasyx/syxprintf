@@ -39,7 +39,7 @@ int read_from_file(Student *arr) {
 void output_to_file(Student *arr, int n) {
     FILE *fp = fopen(file_name, "a");
     for (int i = 0; i < n; i++) {
-        fprintf(fp, "%s %d %d %.2lf",
+        fprintf(fp, "%s %d %d %.2lf\n",
             arr[i].name, arr[i].age,
             arr[i].class, arr[i].height);
     }
@@ -78,6 +78,61 @@ void add_a_student() {
     return ;
 }
 
+void modify_a_student() {
+    list_students();
+    int id;
+    do {
+    printf("modify id : ");
+    scanf("%d", &id);
+    } while (id < 0 || id >= stu_cnt);
+    printf("add new item : (name, age, class, height)\n");
+    printf("syxsql > ");
+    scanf("%s%d%d%lf",
+         stu_arr[id].name,
+         &stu_arr[id].age,
+         &stu_arr[id].class,
+         &stu_arr[id].height
+    );
+    restore_data_to_file(stu_arr, stu_cnt);
+    return ;
+}
+
+void clear_file() {
+    FILE *fp = fopen(file_name, "w");
+    fclose(fp);
+    return ;
+}
+
+void restore_data_to_file(Student *arr, int n) {
+    clear_file();
+    output_to_file(arr, n);
+    return ;
+}
+
+void delete_a_student() {
+    if (stu_cnt == 0) {
+        printf("There is no student.");
+        return ;
+    }
+    list_students();
+    int id;
+    do {
+    printf("delete id : ");
+    scanf("%d", &id);
+    } while (id < 0 || id >= stu_cnt);
+    char s[100];
+    printf("confirm (y / n) : ");
+    fflush(stdin); 
+    scanf("%s", s);
+    if (s[0] != 'y') return ;
+    for (int i = id + 1; i < stu_cnt; i++) {
+        stu_arr[i - 1] = stu_arr[i];
+    }
+    stu_cnt -= 1;
+    restore_data_to_file(stu_arr, stu_cnt);
+    return ;
+}
+ 
 enum NO_TYPE {
     LIST = 1,
     ADD,
@@ -111,8 +166,8 @@ int main(){
         switch (no) {
             case LIST: { list_students(); break; }
             case ADD: {add_a_student(); break;}
-            case MODIFY: printf("modify a student\n"); break;
-            case DELETE: printf("delete a student\n"); break;
+            case MODIFY: { modify_a_student(); } break;
+            case DELETE: { delete_a_student(); }; break;
             case QUIT: printf("exit\n"); exit(0);
         }
 
