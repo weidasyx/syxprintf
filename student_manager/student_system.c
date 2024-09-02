@@ -11,6 +11,7 @@
 const char *file_name = "student_data.txt";
 
 typedef struct Student {
+    int offset;
     char name[20];
     int age;
     int class;
@@ -25,26 +26,32 @@ int read_from_file(Student *arr) {
     int i = 0;
     FILE *fp = fopen(file_name, "r");
     if (fp == NULL) return 0;
-    while (fscanf(fp, "%s", arr[i].name) != EOF) {
+    while(1) {
+        long offset = ftell(fp);
+        if (fscanf(fp, "%s", arr[i].name) != EOF) break;
         fscanf(fp, "%d%d%lf", 
                &arr[i].age,
                &arr[i].class, 
                &arr[i].height);
+        arr[i].offset = offset;
+        fgetc(fp);
         i += 1;
     }
     fclose(fp);
     return i;
 }
 
-void output_to_file(Student *arr, int n) {
+long output_to_file(Student *arr, int n) {
     FILE *fp = fopen(file_name, "a");
+    fseek(fp, 0, SEEK_END);
+    long offset = ftell(fp); 
     for (int i = 0; i < n; i++) {
         fprintf(fp, "%s %d %d %.2lf\n",
             arr[i].name, arr[i].age,
             arr[i].class, arr[i].height);
     }
     fclose(fp);
-    return ;
+    return offset;
 }
 
 void list_students () {
@@ -73,9 +80,14 @@ void add_a_student() {
          &stu_arr[stu_cnt].class,
          &stu_arr[stu_cnt].height
     );
-    output_to_file(stu_arr + stu_cnt, 1);
+    stu_arr[stu_cnt].offset = output_to_file(stu_arr + stu_cnt, 1);
     stu_cnt += 1;
+    printf("add a new student success\n");
     return ;
+}
+
+void modify_data_to_file(Student *stu) {
+    FILE *fp = fopen(file_name, "r+");
 }
 
 void modify_a_student() {
@@ -93,7 +105,8 @@ void modify_a_student() {
          &stu_arr[id].class,
          &stu_arr[id].height
     );
-    restore_data_to_file(stu_arr, stu_cnt);
+    stu_arr[id].offset
+    modify_data_to_file(stu_arr);
     return ;
 }
 
@@ -126,7 +139,9 @@ void delete_a_student() {
     scanf("%s", s);
     if (s[0] != 'y') return ;
     for (int i = id + 1; i < stu_cnt; i++) {
+        long offset = stu_arr[i - 1].offset;
         stu_arr[i - 1] = stu_arr[i];
+        stu_arr[i - 1].offset = offset;
     }
     stu_cnt -= 1;
     restore_data_to_file(stu_arr, stu_cnt);
