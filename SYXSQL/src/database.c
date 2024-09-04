@@ -11,6 +11,16 @@
 #include <string.h>
 
 struct Database db;
+
+__attribute__((constructor))
+void init_db() {
+    db.table = NULL;
+    db.table_file = NULL;
+    db.table_name = NULL;
+    db.head.next = NULL;
+    return ;
+}
+
 struct TableInfo tables[100];
 int tables_cnt = 0;
 
@@ -58,7 +68,7 @@ static void open_table() {
 
 static void clear_table_data() {
     struct table_data *p = db.head.next ,*q;
-    while () {
+    while (p)  {
         q = p->next;
         free(p->data);
         free(p);
@@ -114,20 +124,150 @@ static enum OP_TYPE table_usage() {
     return CHOOSE_TABLE;
 }
 
+static void printTableHeader() {
+    int len = 0;
+    len += printf("%5s|", "id");
+    char frm[100];
+    for (int i = 0; i < db.header_cnt; i++) {
+        sprintf(frm, "%%%ds|", db.header_len[i]);
+        len += printf(frm, db.header_name[i]);
+    }
+    printf("\n");
+    for (int i = 0; i < len; i++) printf("-");
+    printf("\n");
+    return ;
+}
+
 static enum OP_TYPE list_table() {
-    printf("list table\n");
+    __list_table();
     return TABLE_USAGE;
 }
+
+
+int __list_table() {
+    struct table_data *p = db.head.next;
+    int id = 0;
+    printTableHeader();
+    while (p) {
+        printf("%5d|", id);
+        db.printData(p->data) ;
+        p = p->next;
+        id += 1;
+    }
+    return id;
+}
+
+static long add_one_table_data(void *buff) {
+    fseek(db.table, 0, SEEK_END);
+    long offset = ftell(db.table);
+    struct table_data *p = &(db.head);
+    while (p->next) p = p->next;
+    p->next = getNewTableData(buff, offset);
+    fwrite(buff, db.getDataSize(), 1, db.table);
+    fflush(db.table);
+    return offset;
+}
+
 static enum OP_TYPE add_table() {
-    printf("add table\n");
+    printf("add new item : (");
+    for (int i = 0; i < db.header_cnt; i++) {
+        if (i) printf(", ");
+        printf("%s", db.header_name[i]);
+    }
+    printf(")\n");
+    printf("input : ");
+    char buff[db.getDataSize()];
+    db.scanData(buff);
+    db.printData(buff);
+    add_one_table_data(buff);
+    printf("add one item to %s : success\n", db.table_name);
+    printf("\n");
     return TABLE_USAGE;
 }
+
+static void modity_one_table_data(void *buff, int id) {
+    struct table_data *p = db.head.next;
+    for (int i = 0; i < id; i++) {
+        p = p->next;
+    }
+    memcpy(p->data, buff, db.getDataSize());
+    fseek(db.table, p->offset, SEEK_END);
+    fwrite(buff, db.getDataSize(), 1, db.table);
+    fflush(db.table);
+    return ;
+}
+
 static enum OP_TYPE modify_table() {
-    printf("modify table\n");
+    int n = __list_table();
+    int id;
+    printf("modify id : ");
+    do {
+        printf("modify id (%d back) : ", n);
+        scanf("%d", &id);
+    } while (id < 0 || id >= n);
+    if (id == n) return TABLE_USAGE;
+    printf("modify item (id = %d) : (", id);
+    for (int i = 0; i < db.header_cnt; i++) {
+        if (i) printf(", ");
+        printf("%s", db.header_name[i]);
+    }
+    printf(")\n");
+    printf("input : ");
+    char buff[db.getDataSize()];
+    db.scanData(buff);
+    modity_one_table_data(buff, id);
+    printf("modify one item at %s : success\n\n", db.table_name);
     return TABLE_USAGE;
 }
+
+static void destoryTableData(struct table_data *p) {
+    free(p->data);
+    free(p);
+    return ;
+}
+
+static void clearTableData() {
+    fclose(db.table);
+    db.table = fopen(db.table_file, "w");
+    fclose(db.table);
+    db.table = fopen(db.table_file, "rb+");
+    struct table_data *p = db.head.next, *q;
+    while (p) {
+        q = p->next;
+        destoryTableData(p);
+        p = q;
+    }
+    db.head.next = NULL;
+    return ;
+}
+
+static void restoreTableData() {
+    struct table_data *p = db.head.next, *q;
+    db.head.next = NULL;
+    clearTableData();
+    while (p) {
+        q = p->next;
+        add_one_table_data(p->data);
+        destoryTableData(p);
+        p = q;
+    }
+    return ;
+}
+
 static enum OP_TYPE delete_table() {
-    printf("delete table\n");
+    int n = __list_table();
+    int id;
+    do {
+        printf("delete id (%d back) : ", n);
+        scanf("%d", &id);
+    } while (id < 0 || id >= n);
+    if (id == n) return TABLE_USAGE;
+    struct table_data *p = &(db.head), *q;
+    for (int i = 0; i < id; i++) p = p->next;
+    q = p->next;
+    q->next = p->next;
+    destoryTableData(q);
+    restoreTableData();
     return TABLE_USAGE;
 }
 

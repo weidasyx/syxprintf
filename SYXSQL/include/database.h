@@ -33,8 +33,13 @@ struct Database {
     FILE *table;
     const char *table_name;
     const char *table_file;
+    const char **header_name;
+    int header_cnt;
+    int *header_len;
     struct table_data head;
     size_t (*getDataSize)();
+    void (*printData)(void *);
+    void (*scanData)(void *);
 };
 
 struct TableInfo {
