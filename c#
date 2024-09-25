@@ -1,0 +1,67 @@
+// See https://aka.ms/new-console-template for more information
+
+namespace inputHander;
+using System.IO;
+
+class sourceHander
+{
+    public string sourceFile = "./source.txt";
+    public string sourceText = "       wqaaaewqe   eqaawewqe     wqewqeaawew  a   wqeweqweaaqw    + =   10  ";
+    public string destinationText;
+    StreamReader SR;
+
+    Dictionary<string, string> replacements = new Dictionary<string, string>()
+    {
+        {"  ", " "},
+        {"+ ", " " },
+        {"a", "b" }
+
+    };
+
+    public void SaveToFile() { }
+
+    public void openFile() 
+    {
+        try {
+            SR = new StreamReader(File.OpenRead(this.sourceFile));
+            sourceFile = SR.ReadToEnd();
+            SR.Close();
+        }
+        catch(IOException o) { 
+            Console.WriteLine("IO error appear by {0}", o.Message);
+        }
+        catch (Exception xo)
+        {
+            Console.WriteLine("other error appear by {0}", xo.Message);
+        }
+
+    }
+
+    public void replaceText()
+    {
+        foreach (var x in replacements)
+        {
+            while (sourceText.Contains(x.Key))
+            {
+                sourceText = sourceText.Replace(x.Key, x.Value);
+            }
+        }
+       
+    }
+
+
+    
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        sourceHander r = new sourceHander();
+        sourceHander r1 = new sourceHander();   
+        r1.openFile();
+        Console.WriteLine(r.sourceText);
+        r.replaceText();
+        Console.WriteLine(r.sourceText);
+    }
+}
